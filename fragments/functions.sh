@@ -22,7 +22,7 @@ cleanupAndExit() { # $1 = exit code, $2 message, $3 level
         printlog "$2" $3
     fi
     printlog "################## End Installomator, exit code $1 \n" REQ
-    
+
     # if label is wrong and we wanted name of the label, then return ##################
     if [[ $RETURN_LABEL_NAME -eq 1 ]]; then
         1=0 # If only label name should be returned we exit without any errors
@@ -63,7 +63,7 @@ displaynotification() { # $1: message $2: title
     manageaction="/Library/Application Support/JAMF/bin/Management Action.app/Contents/MacOS/Management Action"
 
     if [[ -x "$manageaction" ]]; then
-         "$manageaction" -message "$message" -title "$title"
+        "$manageaction" -message "$message" -title "$title"
     else
         runAsUser osascript -e "display notification \"$message\" with title \"$title\""
     fi
@@ -189,14 +189,14 @@ versionFromGit() {
 
 # Handling of differences in xpath between Catalina and Big Sur
 xpath() {
-	# the xpath tool changes in Big Sur and now requires the `-e` option
-	if [[ $(sw_vers -buildVersion) > "20A" ]]; then
-		/usr/bin/xpath -e $@
-		# alternative: switch to xmllint (which is not perl)
-		#xmllint --xpath $@ -
-	else
-		/usr/bin/xpath $@
-	fi
+    # the xpath tool changes in Big Sur and now requires the `-e` option
+    if [[ $(sw_vers -buildVersion) > "20A" ]]; then
+        /usr/bin/xpath -e $@
+        # alternative: switch to xmllint (which is not perl)
+        #xmllint --xpath $@ -
+    else
+        /usr/bin/xpath $@
+    fi
 }
 
 
@@ -299,8 +299,8 @@ checkRunningProcesses() {
                         printlog "telling app $x to quit"
                         runAsUser osascript -e "tell app \"$x\" to quit"
                         if [[ $i > 2 && $BLOCKING_PROCESS_ACTION = "quit_kill" ]]; then
-                          printlog "Changing BLOCKING_PROCESS_ACTION to kill"
-                          BLOCKING_PROCESS_ACTION=kill
+                            printlog "Changing BLOCKING_PROCESS_ACTION to kill"
+                            BLOCKING_PROCESS_ACTION=kill
                         else
                             # give the user a bit of time to quit apps
                             printlog "waiting 30 seconds for processes to quit"
@@ -308,60 +308,60 @@ checkRunningProcesses() {
                         fi
                         ;;
                     kill)
-                      printlog "killing process $x"
-                      pkill $x
-                      sleep 5
-                      ;;
+                        printlog "killing process $x"
+                        pkill $x
+                        sleep 5
+                        ;;
                     prompt_user|prompt_user_then_kill)
-                      button=$(displaydialog "Quit “$x” to continue updating? (Leave this dialogue if you want to activate this update later)." "The application “$x” needs to be updated.")
-                      if [[ $button = "Not Now" ]]; then
-                        cleanupAndExit 10 "user aborted update" ERROR
-                      else
-                        if [[ $i > 2 && $BLOCKING_PROCESS_ACTION = "prompt_user_then_kill" ]]; then
-                          printlog "Changing BLOCKING_PROCESS_ACTION to kill"
-                          BLOCKING_PROCESS_ACTION=kill
+                        button=$(displaydialog "Quit “$x” to continue updating? (Leave this dialogue if you want to activate this update later)." "The application “$x” needs to be updated.")
+                        if [[ $button = "Not Now" ]]; then
+                            cleanupAndExit 10 "user aborted update" ERROR
                         else
-                          printlog "telling app $x to quit"
-                          runAsUser osascript -e "tell app \"$x\" to quit"
-                          # give the user a bit of time to quit apps
-                          printlog "waiting 30 seconds for processes to quit"
-                          sleep 30
+                            if [[ $i > 2 && $BLOCKING_PROCESS_ACTION = "prompt_user_then_kill" ]]; then
+                                printlog "Changing BLOCKING_PROCESS_ACTION to kill"
+                                BLOCKING_PROCESS_ACTION=kill
+                            else
+                                printlog "telling app $x to quit"
+                                runAsUser osascript -e "tell app \"$x\" to quit"
+                                # give the user a bit of time to quit apps
+                                printlog "waiting 30 seconds for processes to quit"
+                                sleep 30
+                            fi
                         fi
-                      fi
-                      ;;
+                        ;;
                     prompt_user_loop)
-                      button=$(displaydialog "Quit “$x” to continue updating? (Click “Not Now” to be asked in 1 hour, or leave this open until you are ready)." "The application “$x” needs to be updated.")
-                      if [[ $button = "Not Now" ]]; then
-                        if [[ $i < 2 ]]; then
-                          printlog "user wants to wait an hour"
-                          sleep 3600 # 3600 seconds is an hour
+                        button=$(displaydialog "Quit “$x” to continue updating? (Click “Not Now” to be asked in 1 hour, or leave this open until you are ready)." "The application “$x” needs to be updated.")
+                        if [[ $button = "Not Now" ]]; then
+                            if [[ $i < 2 ]]; then
+                                printlog "user wants to wait an hour"
+                                sleep 3600 # 3600 seconds is an hour
+                            else
+                                printlog "change of BLOCKING_PROCESS_ACTION to tell_user"
+                                BLOCKING_PROCESS_ACTION=tell_user
+                            fi
                         else
-                          printlog "change of BLOCKING_PROCESS_ACTION to tell_user"
-                          BLOCKING_PROCESS_ACTION=tell_user
+                            printlog "telling app $x to quit"
+                            runAsUser osascript -e "tell app \"$x\" to quit"
+                            # give the user a bit of time to quit apps
+                            printlog "waiting 30 seconds for processes to quit"
+                            sleep 30
                         fi
-                      else
+                        ;;
+                    tell_user|tell_user_then_kill)
+                        button=$(displaydialogContinue "Quit “$x” to continue updating? (This is an important update). Wait for notification of update before launching app again." "The application “$x” needs to be updated.")
                         printlog "telling app $x to quit"
                         runAsUser osascript -e "tell app \"$x\" to quit"
                         # give the user a bit of time to quit apps
                         printlog "waiting 30 seconds for processes to quit"
                         sleep 30
-                      fi
-                      ;;
-                    tell_user|tell_user_then_kill)
-                      button=$(displaydialogContinue "Quit “$x” to continue updating? (This is an important update). Wait for notification of update before launching app again." "The application “$x” needs to be updated.")
-                      printlog "telling app $x to quit"
-                      runAsUser osascript -e "tell app \"$x\" to quit"
-                      # give the user a bit of time to quit apps
-                      printlog "waiting 30 seconds for processes to quit"
-                      sleep 30
-                      if [[ $i > 1 && $BLOCKING_PROCESS_ACTION = tell_user_then_kill ]]; then
-                          printlog "Changing BLOCKING_PROCESS_ACTION to kill"
-                          BLOCKING_PROCESS_ACTION=kill
-                      fi
-                      ;;
+                        if [[ $i > 1 && $BLOCKING_PROCESS_ACTION = tell_user_then_kill ]]; then
+                            printlog "Changing BLOCKING_PROCESS_ACTION to kill"
+                            BLOCKING_PROCESS_ACTION=kill
+                        fi
+                        ;;
                     silent_fail)
-                      cleanupAndExit 12 "blocking process '$x' found, aborting" ERROR
-                      ;;
+                        cleanupAndExit 12 "blocking process '$x' found, aborting" ERROR
+                        ;;
                 esac
 
                 countedProcesses=$((countedProcesses + 1))
